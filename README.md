@@ -33,12 +33,15 @@ The application will provide the following core features:
 - Search products across all markets
 - View product availability, pricing, and inventory information
 - Place pre-orders for pickup at a selected market
-- Manage order records and statuses
+- View a customer's pre-orders and their current status
 - Track inventory to prevent over-ordering
 
 ## Technology Stack
 
-The application will be developed using the .NET framework, which provides strong support for relational databases, structured application design, and user interface development. .NET will allow the team to build a reliable backend for processing orders and managing data, along with a clean and responsive graphical interface for customers and vendors.
+- **Database:** Microsoft SQL Server
+- **Application:** The application framework will be confirmed before Milestone 4.
+
+The application will provide a graphical user interface that connects directly to the SQL Server database. The application is built for customers: browsing markets, viewing vendors, searching products, and placing pre-orders. It handles only pre-orders placed through the app. In-person purchases at the market are outside the scope of this project.
 
 ---
 
@@ -48,34 +51,55 @@ The application will use a relational database made up of entities representing 
 
 The database will establish relationships between these entities to support the application’s major features and ensure that information is organized without unnecessary duplication.
 
-### Primary Entities
+### Tables
 
-- Market: stores information about individual farmers markets, including ID, name, address, and operating hours.
-- Vendor: stores vendor information, including vendor ID, name, contact details, location, and business description.
-- Market_Vendor: represents the many-to-many relationship between vendors and markets, including booth assignment at each market.
-- Product: stores product information, including ID, name, type, and description.
-- Vendor_Product: represents products sold by vendors and stores each vendor's unit price.
-- Market_Product: stores market-specific product availability and inventory quantity.
-- Customer: stores customer details, including name, email address, and phone number.
-- Pre-Order: stores overall order details such as customer, market, pickup date, order date, total amount, and status.
-- PO_Line: represents the individual vendor products included in a pre-order and records quantity requested.
+The database has nine tables, defined in [schema.sql](schema.sql).
 
-These relationships allow the application to retrieve vendors associated with a market, identify available products by vendor or market, and connect customer orders to the products they have requested.
+| Table | Stores |
+| --- | --- |
+| `market` | Each farmers market: name, address, and operating hours |
+| `vendor` | Each farmer or vendor: name, contact details, business description, and location |
+| `product` | Each product: name, type, and description |
+| `customer` | Each customer: first name, last name, email address, and phone number |
+| `market_vendor` | Which vendors attend which markets, and each vendor's booth number at that market |
+| `vendor_product` | Which products each vendor sells, and that vendor's unit price |
+| `market_vendor_product` | Which products a vendor brings to a specific market, and how many are in stock there |
+| `preorder` | Each pre-order: customer, pickup market, pickup date, order date, and status |
+| `po_line` | Each vendor's product within a pre-order: quantity and the price charged when the order was placed |
+
+The order total is not stored. It is calculated from the order's lines as quantity times the price charged.
 
 ### Entity-Relationship Diagram (ERD)
 
-An ERD will be created to visually represent the relationships between markets, vendors, products, customers, pre-orders, and order line items. This diagram will serve as the blueprint for the database structure and guide the implementation of foreign keys and relational constraints.
+![Entity-Relationship Diagram](ERD%20Image.png)
+
+The ERD uses Chen notation. Each (min..max) cardinality is read across the relationship diamond. For example, a pre-order is placed by exactly one (1..1) customer, and a customer places zero or more (0..N) pre-orders.
+
+### Relationships
+
+- **ATTENDS** (`market_vendor`): many-to-many between markets and vendors. A vendor can have a different booth at each market.
+- **SELLS** (`vendor_product`): many-to-many between vendors and products. Each vendor sets its own price.
+- **STOCKS** (`market_vendor_product`): a three-way relationship between markets, vendors, and products. It records which vendor brings which product to which market, and that vendor's stock there.
+- **PLACES** (`preorder.customer_id`): each pre-order is placed by exactly one customer.
+- **PICKED_UP_AT** (`preorder.market_id`): each pre-order is picked up at exactly one market.
+- **INCLUDES** (`po_line`): a three-way relationship between pre-orders, vendors, and products. Each line records one vendor's product in the order.
 
 ### Database Constraints
 
-The database will use foreign keys to enforce relationships between markets, vendors, products, customers, and orders. Composite foreign keys will ensure each order line's vendor and product are associated with the preorder's market. Vendor prices are shared across the vendor's markets; inventory is tracked per market and product.
+- **Foreign keys** link every table that references another table, so no pre-order, order line, booth, price, or stock record can point to a market, vendor, product, customer, or pre-order that does not exist.
+- **Composite foreign keys** on `market_vendor_product` ensure a vendor can only stock a product at a market if the vendor attends that market and sells that product.
+- **CHECK constraints** keep prices and stock from going negative, require order quantities to be positive, limit pre-order status to Pending, Ready, Picked Up, or Cancelled, and prevent a pickup date earlier than the order date.
+- **A UNIQUE constraint** ensures each customer email is used only once.
 
-### Relationships Between Markets, Vendors, and Products
+### Rules Enforced Outside the ERD
 
-- Many-to-many relationship between markets and vendors through the `MARKET_VENDOR` table.
-- Booth numbers are tracked in the relationship to allow a vendor to have different market locations.
-- Vendors are associated with products through a sells relationship.
-- Products are associated with markets through a pickup_at relationship for market-specific availability.
+The ER model cannot guarantee consistency across multiple relationship types (Chapter 3, slide 29). The following rules are therefore enforced by the application's pre-order transaction (see Database Transaction below) rather than shown in the ERD:
+
+- Each order line must be a product the vendor brings to the pre-order's market.
+- An order cannot request more than the vendor's available stock at that market.
+- Each pre-order must contain at least one item.
+
+See [Normalization.md](Normalization.md) for how the design achieves Third Normal Form and where each rule is enforced.
 
 ---
 
@@ -83,25 +107,33 @@ The database will use foreign keys to enforce relationships between markets, ven
 
 Customers will be able to create a pre-order by selecting products and specifying the quantities they want to purchase. Each pre-order will be associated with a customer and a farmers market, along with a pickup date.
 
-The `PREORDER` entity stores information about the overall order, while the `PO_LINE` entity stores the individual products and quantities included in that order. This structure allows a single pre-order to contain multiple products while maintaining a separate record for each product and quantity.
+The `preorder` table stores the overall order, while the `po_line` table (the INCLUDES relationship in the ERD) stores each vendor's product and quantity in that order. This structure allows a single pre-order to contain several products from several vendors at the same market, with a separate record for each.
 
 For example, a customer could submit a single pre-order containing:
 
-| Product | Quantity |
-| --- | ---: |
-| Tomatoes | 2 |
-| Honey | 1 |
-| Fresh Eggs | 2 |
+| Vendor | Product | Quantity |
+| --- | --- | ---: |
+| Green Acres Farm | Tomatoes | 2 |
+| Prairie Bee Co. | Honey | 1 |
+| Green Acres Farm | Fresh Eggs | 2 |
 
-The `PREORDER` record would represent the overall order, while three corresponding `PO_LINE` records would represent the individual items.
+The `preorder` record would represent the overall order, while three corresponding `po_line` records would represent the individual items.
 
 ## Database Transaction
 
 Placing a pre-order will be handled using a database transaction.
 
-When a customer submits an order, the application will create the pre-order and its associated `PO_LINE` records as part of a single transaction. This ensures that all related records are created together.
+When a customer submits an order, the application performs these steps inside a single transaction:
 
-If all required database operations are successful, the transaction will be committed. If an operation fails, the transaction will be rolled back so the database does not contain an incomplete pre-order or only a partial set of its associated order items.
+1. Create the `preorder` record for the customer, pickup market, and pickup date.
+2. For each item in the order:
+   - Confirm the vendor brings that product to the pre-order's market (`market_vendor_product`).
+   - Confirm the requested quantity does not exceed the vendor's available stock there.
+   - Insert the `po_line` record, copying the vendor's current unit price into `unit_price_at_order`.
+   - Reduce the vendor's `inventory_quantity` at that market by the quantity ordered.
+3. Confirm the order contains at least one item.
+
+If every step succeeds, the transaction is committed. If any step fails, the entire transaction is rolled back, so the database never contains an incomplete pre-order, a partial set of order items, or an incorrect stock count.
 
 Using transactions will help maintain the consistency and integrity of the database when customers submit pre-orders.
 
@@ -154,4 +186,4 @@ Through this project, the group will demonstrate how a relational database can r
 
 ## Summary
 
-This project will demonstrate the full lifecycle of designing and implementing a relational database application. By combining a structured database, realistic sample data, SQL queries, and a functional .NET user interface, the application will show how relational systems support real-world workflows such as browsing markets, managing vendors, tracking inventory, and placing customer pre-orders.
+This project will demonstrate the full lifecycle of designing and implementing a relational database application. By combining a structured database, realistic sample data, SQL queries, and a functional graphical user interface, the application will show how relational systems support real-world workflows such as browsing markets, viewing vendors, searching products, tracking inventory, and placing customer pre-orders.
