@@ -53,11 +53,12 @@ The database will establish relationships between these entities to support the 
 - Market: stores information about individual farmers markets, including ID, name, address, and operating hours.
 - Vendor: stores vendor information, including vendor ID, name, contact details, location, and business description.
 - Market_Vendor: represents the many-to-many relationship between vendors and markets, including booth assignment at each market.
-- Product: stores product information, including ID, name, type, description, and unit price.
-- Market_Product: stores market-specific pricing and inventory information for each product.
+- Product: stores product information, including ID, name, type, and description.
+- Vendor_Product: represents products sold by vendors and stores each vendor's unit price.
+- Market_Product: stores market-specific product availability and inventory quantity.
 - Customer: stores customer details, including name, email address, and phone number.
 - Pre-Order: stores overall order details such as customer, market, pickup date, order date, total amount, and status.
-- PO_Line: represents the individual products included in a pre-order and records quantity requested.
+- PO_Line: represents the individual vendor products included in a pre-order and records quantity requested.
 
 These relationships allow the application to retrieve vendors associated with a market, identify available products by vendor or market, and connect customer orders to the products they have requested.
 
@@ -67,7 +68,7 @@ An ERD will be created to visually represent the relationships between markets, 
 
 ### Database Constraints
 
-The database will use foreign keys to enforce relationships between markets, vendors, products, customers, and orders. These constraints will ensure referential integrity, prevent orphaned records, and maintain consistent relationships across the system.
+The database will use foreign keys to enforce relationships between markets, vendors, products, customers, and orders. Composite foreign keys will ensure each order line's vendor and product are associated with the preorder's market. Vendor prices are shared across the vendor's markets; inventory is tracked per market and product.
 
 ### Relationships Between Markets, Vendors, and Products
 
