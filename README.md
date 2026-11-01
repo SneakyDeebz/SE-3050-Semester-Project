@@ -39,7 +39,7 @@ The application will provide the following core features:
 ## Technology Stack
 
 - **Database:** Microsoft SQL Server
-- **Application:** The application framework will be confirmed before Milestone 4.
+- **Application:** The application framework will be confirmed before the final submission.
 
 The application will provide a graphical user interface that connects directly to the SQL Server database. The application is built for customers: browsing markets, viewing vendors, searching products, and placing pre-orders. It handles only pre-orders placed through the app. In-person purchases at the market are outside the scope of this project.
 
@@ -109,15 +109,15 @@ Customers will be able to create a pre-order by selecting products and specifyin
 
 The `preorder` table stores the overall order, while the `po_line` table (the INCLUDES relationship in the ERD) stores each vendor's product and quantity in that order. This structure allows a single pre-order to contain several products from several vendors at the same market, with a separate record for each.
 
-For example, a customer could submit a single pre-order containing:
+For example, pre-order 13 in the sample data contains:
 
 | Vendor | Product | Quantity |
 | --- | --- | ---: |
-| Green Acres Farm | Tomatoes | 2 |
-| Prairie Bee Co. | Honey | 1 |
-| Green Acres Farm | Fresh Eggs | 2 |
+| Lund Family Beef | Ground Beef | 2 |
+| Olson Heritage Pork | Smoked Bacon | 1 |
+| Bergstrom Bakery | Sourdough Bread | 1 |
 
-The `preorder` record would represent the overall order, while three corresponding `po_line` records would represent the individual items.
+The `preorder` record represents the overall order, while three corresponding `po_line` records represent the individual items.
 
 ## Database Transaction
 
@@ -141,36 +141,54 @@ Using transactions will help maintain the consistency and integrity of the datab
 
 ## Sample Data
 
-The database will be populated with realistic sample data for development, testing, and demonstration purposes.
+[data.sql](data.sql) populates the database with realistic sample data for development, testing, and demonstration. Run [schema.sql](schema.sql) first, then `data.sql`. The script runs as a single transaction, so if any statement fails, no data is inserted.
 
-The project will include at least:
+The sample data is set in Crookston and nearby towns in northwest Minnesota. All market, vendor, and customer names, addresses, and contact details are fictional.
 
-- 10 farmers markets
-- 20 farmers/vendors
-- 50 unique products
+| Table | Rows | Contents |
+| --- | ---: | --- |
+| `market` | 10 | Seven outdoor seasonal markets and three indoor winter markets |
+| `vendor` | 20 | Local farms and food producers |
+| `product` | 50 | Unique products across vegetables, fruit, eggs and dairy, meat, honey and syrup, baked goods, grains and pantry, and preserves |
+| `customer` | 10 | Customers who place pre-orders |
+| `market_vendor` | 47 | Each vendor attends one to three markets and has a booth number at each |
+| `vendor_product` | 53 | Each vendor's products and prices. Some products are sold by more than one vendor at different prices. |
+| `market_vendor_product` | 124 | The products each vendor brings to each market, with current stock |
+| `preorder` | 15 | Ten past pre-orders and five upcoming pre-orders |
+| `po_line` | 40 | The items in each pre-order. Several pre-orders include products from more than one vendor. |
 
-Additional customers, pre-orders, and order line items will be included to demonstrate the application’s ordering functionality and provide enough data for testing SQL queries.
+The data reflects October 26, 2026:
 
-The sample data will represent realistic relationships between vendors, markets, and products. Vendors may participate in multiple markets, and markets may have multiple vendors and products.
+- Pre-orders with pickup dates in August through October 2026 are marked Picked Up or Cancelled. Pre-orders with pickup dates in late November and December 2026 are marked Ready or Pending.
+- Every pickup date falls on its market's day of the week and within the market's season.
+- Summer-only produce, such as sweet corn and strawberries, is out of season, so its stock is 0. It still appears in product searches.
+- The Ada and Red Lake Falls markets run July through September. Their season has ended, so all of their stock is 0.
+- Every order line is a product that vendor brings to the pre-order's market, at the vendor's listed price.
 
 ---
 
 ## SQL Queries
 
-The application will use SQL queries to retrieve and manipulate information stored in the database. The major queries will support the application’s primary features, including:
+[queries.sql](queries.sql) contains the major SELECT statements the application uses. Run it after `schema.sql` and `data.sql`. Each query is commented with the application feature it supports and the result it returns with the sample data.
 
-- Retrieving a list of farmers markets
-- Retrieving the details of a specific market
-- Finding all vendors participating in a specific market
-- Finding products associated with a particular market
-- Finding products offered by a particular vendor
-- Searching for products by name or type
-- Finding markets and vendors associated with a particular product
-- Retrieving a customer’s pre-orders
-- Retrieving the products and quantities included in a pre-order
-- Creating and processing new pre-orders
+| Query | Purpose |
+| --- | --- |
+| 1 | List all farmers markets |
+| 2 | Show the details of a specific market |
+| 3 | List the vendors at a specific market, with booth numbers |
+| 4 | List the products available at a specific market, with vendor, price, and stock |
+| 5 | List the products a specific vendor sells, with prices |
+| 6A, 6B | Search for products by name or by type |
+| 6C | Search for products across all markets, showing every market and vendor that offers each match, with price and stock |
+| 7 | Show every market and vendor that offers a specific product |
+| 8 | List a customer's pre-orders with their status and total |
+| 9 | Show the items, quantities, prices, and total of a pre-order |
+| 10 | List products that are out of stock at every market |
+| 11, 12 | Check that a vendor brings a product to a market, and return its stock and price, before a pre-order line is created |
 
-These queries will demonstrate the use of joins and relationships between multiple database entities.
+Creating a pre-order inserts rows, so it is handled by the application's pre-order transaction (see Database Transaction above) rather than by a SELECT statement. Queries 11 and 12 are the checks that transaction runs before inserting each order line.
+
+These queries join markets, vendors, products, customers, and pre-orders through the relationship tables described in the Database Design section.
 
 ---
 
