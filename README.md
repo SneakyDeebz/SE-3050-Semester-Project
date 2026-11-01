@@ -7,6 +7,7 @@ This repository contains the semester project for the University of Minnesota Cr
 - Gavin Sullivan
 - Travis Gurske
 - Max Netteberg
+- Benjamin Monahan
 
 ## GitHub Project
 
