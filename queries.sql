@@ -272,13 +272,14 @@ WHERE    NOT EXISTS (SELECT 1
                             AND mvp.inventory_quantity > 0)
 ORDER BY p.product_name;
 
--- Query 11: Check the stock and price of one listing.
+-- Query 11: Retrieve the current stock and price of one listing.
 -- Used for: Place a pre-order (required feature). Inside the
--- pre-order transaction, the app runs this check before inserting
+-- pre-order transaction, the app runs this lookup before inserting
 -- each order line. It confirms the vendor brings the product to the
--- pre-order's market, that the quantity requested does not exceed
--- inventory_quantity, and returns the unit_price the app copies into
--- po_line.unit_price_at_order.
+-- pre-order's market and returns the current inventory_quantity and
+-- unit_price for that listing; the application compares the returned
+-- inventory_quantity to the requested quantity and copies the unit
+-- price into po_line.unit_price_at_order.
 -- Test: Market 10, Vendor 6, Product 43.
 -- Expected: 28 units at $14.00.
 DECLARE @market_id_11 AS INT = 10;
