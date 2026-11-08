@@ -1,0 +1,59 @@
+@page "/Markets/Details"
+@model FarmersMarket.Web.Pages.Markets.DetailsModel
+@{
+    ViewData["Title"] = Model.Market is null ? "Market Details" : Model.Market.MarketName;
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+else if (Model.Market is null)
+{
+    <p>The requested market could not be found.</p>
+}
+else
+{
+    <h1>@Model.Market.MarketName</h1>
+
+    <dl class="row">
+        <dt class="col-sm-3">Address</dt>
+        <dd class="col-sm-9">@Model.Market.MarketAddress</dd>
+
+        <dt class="col-sm-3">Operating Hours</dt>
+        <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Market.OperatingHours) ? "Not listed" : Model.Market.OperatingHours)</dd>
+    </dl>
+
+    <h2>Vendors</h2>
+
+    @if (Model.Vendors.Count == 0)
+    {
+        <p>No vendors are currently listed for this market.</p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Vendor Name</th>
+                    <th>Booth Number</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var vendor in Model.Vendors)
+                {
+                    <tr>
+                        <td>@vendor.VendorName</td>
+                        <td>@(string.IsNullOrWhiteSpace(vendor.VendorBoothNumber) ? "Not listed" : vendor.VendorBoothNumber)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <p>
+        <a asp-page="/Markets/Index">Back to Markets</a>
+    </p>
+}
