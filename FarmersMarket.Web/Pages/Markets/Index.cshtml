@@ -1,0 +1,44 @@
+@page "/Markets"
+@model FarmersMarket.Web.Pages.Markets.IndexModel
+@{
+    ViewData["Title"] = "Markets";
+}
+
+<h1>Farmers Markets</h1>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+else if (Model.Markets.Count == 0)
+{
+    <p>No markets are currently available.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Market</th>
+                <th>Address</th>
+                <th>Operating Hours</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var market in Model.Markets)
+            {
+                <tr>
+                    <td>
+                        <a asp-page="/Markets/Details" asp-route-id="@market.MarketId">
+                            @market.MarketName
+                        </a>
+                    </td>
+                    <td>@market.MarketAddress</td>
+                    <td>@(string.IsNullOrWhiteSpace(market.OperatingHours) ? "Not listed" : market.OperatingHours)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
