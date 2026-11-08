@@ -1,0 +1,61 @@
+@page "/Products"
+@model FarmersMarket.Web.Pages.Products.IndexModel
+@{
+    ViewData["Title"] = "Products";
+}
+
+<h1>Products</h1>
+
+<form method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text"
+               class="form-control"
+               name="searchTerm"
+               value="@Model.SearchTerm"
+               placeholder="Search products by name" />
+        <button type="submit" class="btn btn-primary">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+        {
+            <a class="btn btn-outline-secondary" asp-page="/Products">Clear Search</a>
+        }
+    </div>
+</form>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+else if (Model.Products.Count == 0)
+{
+    <p>No products matched your search.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Type</th>
+                <th>Vendor</th>
+                <th>Market</th>
+                <th>Price</th>
+                <th>Inventory</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var product in Model.Products)
+            {
+                <tr>
+                    <td>@product.ProductName</td>
+                    <td>@(string.IsNullOrWhiteSpace(product.ProductType) ? "Not listed" : product.ProductType)</td>
+                    <td>@product.VendorName</td>
+                    <td>@product.MarketName</td>
+                    <td>@product.UnitPrice.ToString("C")</td>
+                    <td>@(product.InventoryQuantity == 0 ? "Out of stock" : product.InventoryQuantity.ToString())</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

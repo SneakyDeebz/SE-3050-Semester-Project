@@ -3,6 +3,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<FarmersMarket.Web.Data.MarketRepository>();
+builder.Services.AddScoped<FarmersMarket.Web.Data.ProductRepository>();
 
 var app = builder.Build();
 
