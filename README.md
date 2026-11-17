@@ -40,9 +40,16 @@ The application will provide the following core features:
 ## Technology Stack
 
 - **Database:** Microsoft SQL Server
-- **Application:** The application framework will be confirmed before the final submission.
+- **Web Application:** ASP.NET Core Razor Pages
+- **Programming Language:** C#
+- **Framework:** .NET 10
+- **User Interface:** HTML, CSS, Bootstrap, and Razor Pages
+- **Database Connectivity:** ADO.NET using Microsoft.Data.SqlClient
+- **Database Language:** SQL (T-SQL)
 
-The application will provide a graphical user interface that connects directly to the SQL Server database. The application is built for customers: browsing markets, viewing vendors, searching products, and placing pre-orders. It handles only pre-orders placed through the app. In-person purchases at the market are outside the scope of this project.
+The application uses ASP.NET Core Razor Pages to provide a web-based user interface. C# handles application logic and database operations. ADO.NET connects the application to Microsoft SQL Server, where market, vendor, product, customer, inventory, and preorder information is stored.
+
+The application uses SQL queries to retrieve and display information and database transactions to process preorders and update inventory.
 
 ---
 
