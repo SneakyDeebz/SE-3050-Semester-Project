@@ -16,7 +16,11 @@
         <button type="submit" class="btn btn-primary">Search</button>
         @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
         {
-            <a class="btn btn-outline-secondary" asp-page="/Products">Clear Search</a>
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    onclick="window.location.href='/Products'">
+                Clear Search
+            </button>
         }
     </div>
 </form>
