@@ -67,12 +67,15 @@ public class CreateModel : PageModel
         }
 
         // The listing selection contains market, vendor, and product IDs.
+        int marketId = 0;
+        int vendorId = 0;
+        int productId = 0;
         var ids = ListingSelection.Split('|');
 
         if (ids.Length != 3 ||
-            !int.TryParse(ids[0], out int marketId) ||
-            !int.TryParse(ids[1], out int vendorId) ||
-            !int.TryParse(ids[2], out int productId))
+            !int.TryParse(ids[0], out marketId) ||
+            !int.TryParse(ids[1], out vendorId) ||
+            !int.TryParse(ids[2], out productId))
         {
             ModelState.AddModelError(
                 nameof(ListingSelection),
