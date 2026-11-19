@@ -1,215 +1,173 @@
-# SE-3050 Semester Project
+# Farmers Market Pre-Order Application
 
-This repository contains the semester project for the University of Minnesota Crookston course SE 3050 (E90).
+This repository contains the SE 3050 semester project for the University of Minnesota Crookston.
 
-## Team Members
+## Team
 
 - Gavin Sullivan
 - Travis Gurske
 - Max Netteberg
 - Benjamin Monahan
 
-## GitHub Project
-
-- Project board: https://github.com/users/SneakyDeebz/projects/1/views/1
-
-<img width="2532" height="1188" alt="Project planning board screenshot" src="https://github.com/user-attachments/assets/b7dcfbdc-a35c-4231-b5df-b0b186955cd5" />
-
----
-
-# Project Proposal
+Project board: https://github.com/users/SneakyDeebz/projects/1/views/1
 
 ## Project Overview
 
-Our project is a farmers market management and pre-ordering application designed to connect customers with local farmers and vendors. The application gives users an easy way to browse farmers markets, view participating vendors, search for products, and place pre-orders for items they want to pick up at the market.
+The Farmers Market application is a customer-facing website for discovering local farmers markets and the products available there. Customers can browse markets, view market details and attending vendors, search products across markets, and place preorders for pickup at a selected market.
 
-The system will use a relational database to store information about farmers markets, vendors, products, product availability, customers, and pre-orders. The database will maintain relationships between these entities while allowing the application to efficiently search for products and process customer orders.
-
-## Application Features
-
-The application will provide the following core features:
-
-- Browse farmers markets and view their details
-- View market-specific vendor information
-- Search products across all markets
-- View product availability, pricing, and inventory information
-- Place pre-orders for pickup at a selected market
-- View a customer's pre-orders and their current status
-- Track inventory to prevent over-ordering
+The application uses a relational SQL Server database to represent markets, vendors, products, customers, product availability, and preorders. It does not provide vendor-management or administrative functionality.
 
 ## Technology Stack
 
-- **Database:** Microsoft SQL Server
-- **Web Application:** ASP.NET Core Razor Pages
-- **Programming Language:** C#
-- **Framework:** .NET 10
-- **User Interface:** HTML, CSS, Bootstrap, and Razor Pages
-- **Database Connectivity:** ADO.NET using Microsoft.Data.SqlClient
-- **Database Language:** SQL (T-SQL)
+| Area | Technology |
+| --- | --- |
+| Web application | ASP.NET Core Razor Pages |
+| Target framework | .NET 10 (`net10.0`) |
+| Database | Microsoft SQL Server |
+| Database access | ADO.NET with `Microsoft.Data.SqlClient` 7.1.1 |
+| User interface | HTML, CSS, Razor, and locally bundled Bootstrap 5.3.3 |
 
-The application uses ASP.NET Core Razor Pages to provide a web-based user interface. C# handles application logic and database operations. ADO.NET connects the application to Microsoft SQL Server, where market, vendor, product, customer, inventory, and preorder information is stored.
+The application uses ADO.NET rather than Entity Framework Core. SQL queries and the preorder transaction remain visible in repository code, making the database operations and relationships clear for this course project.
 
-The application uses SQL queries to retrieve and display information and database transactions to process preorders and update inventory.
+## Application Features
 
----
+1. **Browse farmers markets** — view each market's name, address, and operating hours.
+2. **View a market and its vendors** — see a selected market's information and attending vendors, including booth numbers when available.
+3. **Search products across markets** — search product names and see each matching product/vendor/market listing, its vendor price, and market inventory. Zero-inventory listings are shown as out of stock.
+4. **Place a preorder** — choose a customer and available product listing, quantity, and pickup date. Preorder creation updates inventory and writes the order and its line item in a SQL transaction.
 
 ## Database Design
 
-The application will use a relational database made up of entities representing farmers markets, vendors, products, customers, pre-orders, and the items included in each pre-order.
+The authoritative database definition is [schema.sql](schema.sql). It defines nine tables:
 
-The database will establish relationships between these entities to support the application’s major features and ensure that information is organized without unnecessary duplication.
-
-### Tables
-
-The database has nine tables, defined in [schema.sql](schema.sql).
-
-| Table | Stores |
+| Table | Purpose |
 | --- | --- |
-| `market` | Each farmers market: name, address, and operating hours |
-| `vendor` | Each farmer or vendor: name, contact details, business description, and location |
-| `product` | Each product: name, type, and description |
-| `customer` | Each customer: first name, last name, email address, and phone number |
-| `market_vendor` | Which vendors attend which markets, and each vendor's booth number at that market |
-| `vendor_product` | Which products each vendor sells, and that vendor's unit price |
-| `market_vendor_product` | Which products a vendor brings to a specific market, and how many are in stock there |
-| `preorder` | Each pre-order: customer, pickup market, pickup date, order date, and status |
-| `po_line` | Each vendor's product within a pre-order: quantity and the price charged when the order was placed |
+| `market` | Market name, address, and operating hours |
+| `vendor` | Vendor name and contact/business details |
+| `product` | Product name, type, and description |
+| `customer` | Customer name and contact information |
+| `market_vendor` | Vendors attending markets and their booth numbers |
+| `vendor_product` | Products sold by vendors and their unit prices |
+| `market_vendor_product` | Vendor products brought to each market and their inventory |
+| `preorder` | Customer preorder, pickup market/date, order date, and status |
+| `po_line` | Product, vendor, quantity, and price snapshot for each preorder line |
 
-The order total is not stored. It is calculated from the order's lines as quantity times the price charged.
+The ERD uses Chen notation and is available as [ERD Image.png](ERD%20Image.png). [Normalization.md](Normalization.md) documents the functional dependencies and normalization analysis.
 
-### Entity-Relationship Diagram (ERD)
+The database uses foreign keys, composite keys, and check constraints to enforce valid relationships and values. The order total is calculated from preorder lines (`quantity * unit_price_at_order`) and is not stored separately.
 
-![Entity-Relationship Diagram](ERD%20Image.png)
+## Database Interaction
 
-The ERD uses Chen notation. Each (min..max) cardinality is read across the relationship diamond. For example, a pre-order is placed by exactly one (1..1) customer, and a customer places zero or more (0..N) pre-orders.
+The ADO.NET repository classes in `FarmersMarket.Web/Data` contain the SQL used by the application:
 
-### Relationships
+- `MarketRepository` reads markets, a selected market, and its vendors.
+- `ProductRepository` joins `product`, `vendor_product`, `vendor`, `market_vendor_product`, and `market` to show actual product/vendor/market listings. The `market_vendor_product` relationship ensures the vendor brings that product to that market.
+- `PreorderRepository` loads customer and available-listing choices and creates preorders.
 
-- **ATTENDS** (`market_vendor`): many-to-many between markets and vendors. A vendor can have a different booth at each market.
-- **SELLS** (`vendor_product`): many-to-many between vendors and products. Each vendor sets its own price.
-- **STOCKS** (`market_vendor_product`): a three-way relationship between markets, vendors, and products. It records which vendor brings which product to which market, and that vendor's stock there.
-- **PLACES** (`preorder.customer_id`): each pre-order is placed by exactly one customer.
-- **PICKED_UP_AT** (`preorder.market_id`): each pre-order is picked up at exactly one market.
-- **INCLUDES** (`po_line`): a three-way relationship between pre-orders, vendors, and products. Each line records one vendor's product in the order.
+Request-supplied values used in SQL are passed as parameters rather than concatenated into SQL statements. Product-name searches use a parameterized `LIKE` pattern for partial matching. Search collation behavior follows the SQL Server database collation.
 
-### Database Constraints
+Preorder creation reads the current price from `vendor_product.unit_price`, then saves that price in `po_line.unit_price_at_order`. It checks and reduces inventory in `market_vendor_product` as part of the same transaction that inserts the `preorder` and its `po_line`.
 
-- **Foreign keys** link every table that references another table, so no pre-order, order line, booth, price, or stock record can point to a market, vendor, product, customer, or pre-order that does not exist.
-- **Composite foreign keys** on `market_vendor_product` ensure a vendor can only stock a product at a market if the vendor attends that market and sells that product.
-- **CHECK constraints** keep prices and stock from going negative, require order quantities to be positive, limit pre-order status to Pending, Ready, Picked Up, or Cancelled, and prevent a pickup date earlier than the order date.
-- **A UNIQUE constraint** ensures each customer email is used only once.
+## Project Structure
 
-### Rules Enforced Outside the ERD
+```text
+FarmersMarket.Web/
+├── Data/                       # ADO.NET repositories and SQL
+├── Models/                     # Data models used by the pages
+├── Pages/
+│   ├── Markets/                # Market list and details
+│   ├── Products/               # Product search
+│   ├── Preorders/              # Preorder creation
+│   └── Shared/                 # Shared layout and validation partial
+├── wwwroot/                    # CSS and bundled static assets
+├── appsettings*.json           # Application configuration
+└── FarmersMarket.Web.csproj    # Target framework and package references
+```
 
-The ER model cannot guarantee consistency across multiple relationship types (Chapter 3, slide 29). The following rules are therefore enforced by the application's pre-order transaction (see Database Transaction below) rather than shown in the ERD:
+## Prerequisites
 
-- Each order line must be a product the vendor brings to the pre-order's market.
-- An order cannot request more than the vendor's available stock at that market.
-- Each pre-order must contain at least one item.
+- .NET 10 SDK
+- Microsoft SQL Server, running locally or otherwise accessible to your machine
+- A SQL Server client/tool capable of creating a database and executing the provided SQL scripts
 
-See [Normalization.md](Normalization.md) for how the design achieves Third Normal Form and where each rule is enforced.
+The project can be restored, built, and run using the .NET CLI; no specific IDE is required.
 
----
+## Database Setup
 
-## Pre-Order Process
+Use a development database. The schema script drops and recreates its tables, deleting existing table data.
 
-Customers will be able to create a pre-order by selecting products and specifying the quantities they want to purchase. Each pre-order will be associated with a customer and a farmers market, along with a pickup date.
+1. Create the database:
 
-The `preorder` table stores the overall order, while the `po_line` table (the INCLUDES relationship in the ERD) stores each vendor's product and quantity in that order. This structure allows a single pre-order to contain several products from several vendors at the same market, with a separate record for each.
+   ```sql
+   CREATE DATABASE farmers_market;
+   ```
 
-For example, pre-order 13 in the sample data contains:
+2. Execute [schema.sql](schema.sql) against the server. It selects `farmers_market` with `USE farmers_market` and creates the tables and constraints.
+3. To load the repository's sample data, execute [data.sql](data.sql) after `schema.sql`. It populates the tables with fictional sample markets, vendors, products, customers, inventory, and preorders. The sample-data script runs its inserts in a transaction.
 
-| Vendor | Product | Quantity |
-| --- | --- | ---: |
-| Lund Family Beef | Ground Beef | 2 |
-| Olson Heritage Pork | Smoked Bacon | 1 |
-| Bergstrom Bakery | Sourdough Bread | 1 |
+The sample data is useful for demonstrating and testing the application. Do not run `schema.sql` against a database whose data must be retained.
 
-The `preorder` record represents the overall order, while three corresponding `po_line` records represent the individual items.
+## Connection String
 
-## Database Transaction
+The development connection string is configured as `ConnectionStrings:FarmersMarket` in `FarmersMarket.Web/appsettings.Development.json`:
 
-Placing a pre-order will be handled using a database transaction.
+```text
+Server=localhost;Database=farmers_market;Trusted_Connection=True;TrustServerCertificate=True;
+```
 
-When a customer submits an order, the application performs these steps inside a single transaction:
+The connection uses Windows trusted authentication and contains no username or password. If your SQL Server uses a named instance or a different server, adjust the `Server` portion in your local development configuration.
 
-1. Create the `preorder` record for the customer, pickup market, and pickup date.
-2. For each item in the order:
-   - Confirm the vendor brings that product to the pre-order's market (`market_vendor_product`).
-   - Confirm the requested quantity does not exceed the vendor's available stock there.
-   - Insert the `po_line` record, copying the vendor's current unit price into `unit_price_at_order`.
-   - Reduce the vendor's `inventory_quantity` at that market by the quantity ordered.
-3. Confirm the order contains at least one item.
+## Restore, Build, and Run
 
-If every step succeeds, the transaction is committed. If any step fails, the entire transaction is rolled back, so the database never contains an incomplete pre-order, a partial set of order items, or an incorrect stock count.
+From the repository root, run:
 
-Using transactions will help maintain the consistency and integrity of the database when customers submit pre-orders.
+```bash
+dotnet restore
+dotnet build
+dotnet run --project FarmersMarket.Web
+```
 
----
+The launch profiles configure the Development environment. After starting, `dotnet run` prints the local application URL in the terminal; use that URL rather than assuming a particular port.
 
-## Sample Data
+## Using the Application
 
-[data.sql](data.sql) populates the database with realistic sample data for development, testing, and demonstration. Run [schema.sql](schema.sql) first, then `data.sql`. The script runs as a single transaction, so if any statement fails, no data is inserted.
+The shared navigation provides:
 
-The sample data is set in Crookston and nearby towns in northwest Minnesota. All market, vendor, and customer names, addresses, and contact details are fictional.
+- **Home** — landing page with links to the main tasks.
+- **Markets** — browse markets and open a market's details to view its vendors and booth numbers.
+- **Products** — browse available vendor/product/market combinations or search by product name.
+- **Preorder** — choose a customer and available listing, then submit quantity and pickup date.
 
-| Table | Rows | Contents |
-| --- | ---: | --- |
-| `market` | 10 | Seven outdoor seasonal markets and three indoor winter markets |
-| `vendor` | 20 | Local farms and food producers |
-| `product` | 50 | Unique products across vegetables, fruit, eggs and dairy, meat, honey and syrup, baked goods, grains and pantry, and preserves |
-| `customer` | 10 | Customers who place pre-orders |
-| `market_vendor` | 47 | Each vendor attends one to three markets and has a booth number at each |
-| `vendor_product` | 53 | Each vendor's products and prices. Some products are sold by more than one vendor at different prices. |
-| `market_vendor_product` | 124 | The products each vendor brings to each market, with current stock |
-| `preorder` | 15 | Ten past pre-orders and five upcoming pre-orders |
-| `po_line` | 40 | The items in each pre-order. Several pre-orders include products from more than one vendor. |
+The preorder page lists customers from the database. The application does not currently provide customer accounts or authentication.
 
-The data reflects October 26, 2026:
+## Preorder Transaction
 
-- Pre-orders with pickup dates in August through October 2026 are marked Picked Up or Cancelled. Pre-orders with pickup dates in late November and December 2026 are marked Ready or Pending.
-- Every pickup date falls on its market's day of the week and within the market's season.
-- Summer-only produce, such as sweet corn and strawberries, is out of season, so its stock is 0. It still appears in product searches.
-- The Ada and Red Lake Falls markets run July through September. Their season has ended, so all of their stock is 0.
-- Every order line is a product that vendor brings to the pre-order's market, at the vendor's listed price.
+`PreorderRepository.PlacePreorderAsync` validates that quantity is greater than zero and the pickup date is not in the past. It then opens a SQL connection and starts a transaction.
 
----
+Within the transaction, the repository:
 
-## SQL Queries
+1. Selects the requested market/vendor/product listing from `market_vendor_product`, joins `vendor_product`, reads the current `unit_price`, and checks that inventory is at least the requested quantity. The inventory row is locked during this operation.
+2. Decreases `inventory_quantity` by the requested amount with a conditional update that also requires sufficient stock.
+3. Inserts the `preorder` row and retrieves its generated ID with `OUTPUT INSERTED.preorder_id`.
+4. Inserts the related `po_line` using that preorder ID, vendor ID, product ID, requested quantity, and the retrieved price as `unit_price_at_order`.
+5. Commits after all operations succeed.
 
-[queries.sql](queries.sql) contains the major SELECT statements the application uses. Run it after `schema.sql` and `data.sql`. Each query is commented with the application feature it supports and the result it returns with the sample data.
+If a requested listing is unavailable or has insufficient stock, the operation fails before the inventory update. If an operation throws before commit, the repository rolls the transaction back and rethrows the failure. The inventory update and both inserts use the same connection and transaction, preventing a failed operation from leaving its partial changes committed.
 
-| Query | Purpose |
-| --- | --- |
-| 1 | List all farmers markets |
-| 2 | Show the details of a specific market |
-| 3 | List the vendors at a specific market, with booth numbers |
-| 4 | List the products available at a specific market, with vendor, price, and stock |
-| 5 | List the products a specific vendor sells, with prices |
-| 6A, 6B | Search for products by name or by type |
-| 6C | Search for products across all markets, showing every market and vendor that offers each match, with price and stock |
-| 7 | Show every market and vendor that offers a specific product |
-| 8 | List a customer's pre-orders with their status and total |
-| 9 | Show the items, quantities, prices, and total of a pre-order |
-| 10 | List products that are out of stock at every market |
-| 11, 12 | Check that a vendor brings a product to a market, and return its stock and price, before a pre-order line is created |
+## SQL Query Examples
 
-Creating a pre-order inserts rows, so it is handled by the application's pre-order transaction (see Database Transaction above) rather than by a SELECT statement. Queries 11 and 12 are the checks that transaction runs before inserting each order line.
+[queries.sql](queries.sql) contains commented SQL examples for exploring the schema and its relationships. It is a standalone query reference; the application's actual queries are in the repository classes.
 
-These queries join markets, vendors, products, customers, and pre-orders through the relationship tables described in the Database Design section.
+## Testing and Verification
 
----
+- [ ] Markets load successfully.
+- [ ] Market details display the correct vendors.
+- [ ] Product search returns matching products across markets.
+- [ ] A valid preorder can be created successfully.
+- [ ] Inventory decreases correctly after a successful preorder.
+- [ ] A preorder requesting more inventory than is available is rejected.
+- [ ] A rejected preorder does not leave partial preorder or `po_line` records.
 
-## Application Goals
+### Final Demo Video
 
-The primary goal of this project is to demonstrate the complete lifecycle of a relational database application. The project will progress from designing the database and creating an Entity-Relationship Diagram, to populating the database with realistic sample data, developing SQL queries, and finally creating a graphical user interface that interacts with the database.
-
-The completed application will allow users to browse farmers markets, explore vendors and products, search for products across the database, and place pre-orders for items they want to pick up at the market.
-
-Through this project, the group will demonstrate how a relational database can represent a real-world system and how that database can support the features of a functional application.
-
----
-
-## Summary
-
-This project will demonstrate the full lifecycle of designing and implementing a relational database application. By combining a structured database, realistic sample data, SQL queries, and a functional graphical user interface, the application will show how relational systems support real-world workflows such as browsing markets, viewing vendors, searching products, tracking inventory, and placing customer pre-orders.
+**Final Demo Video:** [Link will be added before submission]
