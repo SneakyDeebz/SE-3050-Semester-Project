@@ -1,0 +1,81 @@
+@page "/Markets/Details"
+@model FarmersMarket.Web.Pages.Markets.DetailsModel
+@{
+    ViewData["Title"] = Model.Market is null ? "Market Details" : Model.Market.MarketName;
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        @Model.ErrorMessage
+    </div>
+}
+else if (Model.Market is null)
+{
+    <p>The requested market could not be found.</p>
+}
+else
+{
+    <h1>@Model.Market.MarketName</h1>
+
+    <section class="card mb-4" aria-labelledby="market-information-heading">
+        <div class="card-header">
+            <h2 class="h5 mb-0" id="market-information-heading">Market Information</h2>
+        </div>
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-3">Address</dt>
+                <dd class="col-sm-9">@Model.Market.MarketAddress</dd>
+
+                <dt class="col-sm-3">Operating Hours</dt>
+                <dd class="col-sm-9 mb-0">@(string.IsNullOrWhiteSpace(Model.Market.OperatingHours) ? "Not listed" : Model.Market.OperatingHours)</dd>
+            </dl>
+        </div>
+    </section>
+
+    <section class="mb-4" aria-labelledby="vendors-heading">
+        <h2 id="vendors-heading" class="mb-3">Vendors</h2>
+
+        @if (Model.Vendors.Count == 0)
+        {
+            <div class="alert alert-info" role="status">No vendors are currently listed for this market.</div>
+        }
+        else
+        {
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th scope="col">Vendor Name</th>
+                                <th scope="col">Booth Number</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var vendor in Model.Vendors)
+                            {
+                                <tr>
+                                    <th scope="row">@vendor.VendorName</th>
+                                    <td>
+                                        @if (string.IsNullOrWhiteSpace(vendor.VendorBoothNumber))
+                                        {
+                                            <span class="text-muted">Not listed</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge booth-badge">@vendor.VendorBoothNumber</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    </section>
+
+    <p>
+        <a class="btn btn-outline-primary" asp-page="/Markets/Index">Back to Markets</a>
+    </p>
+}
