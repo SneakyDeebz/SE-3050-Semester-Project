@@ -21,10 +21,10 @@ public class CreateModel : PageModel
     }
 
     [BindProperty]
-    public int CustomerId { get; set; }
+    public int? CustomerId { get; set; }
 
-    [BindProperty]
-    public string ListingSelection { get; set; } = string.Empty;
+    [BindProperty(SupportsGet = true)]
+    public string? ListingSelection { get; set; }
 
     [BindProperty]
     public int Quantity { get; set; } = 1;
@@ -52,6 +52,15 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        // Validate customer selection.
+        if (CustomerId == null || CustomerId <= 0)
+        {
+            ModelState.AddModelError(
+                nameof(CustomerId),
+                "Please select a customer.");
+        }
+
+        // Validate quantity.
         if (Quantity <= 0)
         {
             ModelState.AddModelError(
@@ -59,6 +68,7 @@ public class CreateModel : PageModel
                 "Quantity must be greater than zero.");
         }
 
+        // Validate pickup date.
         if (PickupDate.Date < DateTime.Today)
         {
             ModelState.AddModelError(
@@ -70,7 +80,8 @@ public class CreateModel : PageModel
         int marketId = 0;
         int vendorId = 0;
         int productId = 0;
-        var ids = ListingSelection.Split('|');
+
+        var ids = (ListingSelection ?? string.Empty).Split('|');
 
         if (ids.Length != 3 ||
             !int.TryParse(ids[0], out marketId) ||
@@ -82,6 +93,7 @@ public class CreateModel : PageModel
                 "Please select a valid product listing.");
         }
 
+        // Reload form options and display all validation errors.
         if (!ModelState.IsValid)
         {
             await LoadFormOptionsAsync();
@@ -91,7 +103,7 @@ public class CreateModel : PageModel
         try
         {
             int preorderId = await _preorderRepository.PlacePreorderAsync(
-                CustomerId,
+                CustomerId!.Value,
                 marketId,
                 vendorId,
                 productId,
@@ -148,7 +160,10 @@ public class CreateModel : PageModel
             Text = $"{listing.ProductName} - {listing.VendorName} - " +
                    $"{listing.MarketName} " +
                    $"(${listing.UnitPrice:F2}, " +
-                   $"{listing.InventoryQuantity} available)"
+                   $"{listing.InventoryQuantity} available)",
+            Selected = !string.IsNullOrWhiteSpace(ListingSelection) &&
+                ListingSelection ==
+                $"{listing.MarketId}|{listing.VendorId}|{listing.ProductId}"
         }).ToList();
     }
 }
