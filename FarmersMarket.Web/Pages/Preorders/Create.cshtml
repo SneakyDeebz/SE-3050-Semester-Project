@@ -96,4 +96,39 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const customerSelect = document.getElementById("CustomerId");
+            const productSelect = document.getElementById("ListingSelection");
+
+            function clearValidationMessage(element, fieldName) {
+                if (element && element.value) {
+                    const validationMessage = document.querySelector(
+                        `[data-valmsg-for="${fieldName}"]`
+                    );
+
+                    if (validationMessage) {
+                        validationMessage.textContent = "";
+                        validationMessage.classList.remove("field-validation-error");
+                        validationMessage.classList.add("field-validation-valid");
+                    }
+
+                    element.classList.remove("input-validation-error");
+                }
+            }
+
+            if (customerSelect) {
+                customerSelect.addEventListener("change", function () {
+                    clearValidationMessage(customerSelect, "CustomerId");
+                });
+            }
+
+            if (productSelect) {
+                productSelect.addEventListener("change", function () {
+                    clearValidationMessage(productSelect, "ListingSelection");
+                });
+            }
+        });
+    </script>
 }
