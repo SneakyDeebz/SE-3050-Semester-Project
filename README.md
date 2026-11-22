@@ -172,6 +172,4 @@ If a requested listing is unavailable or has insufficient stock, the operation f
 - [ ] A preorder requesting more inventory than is available is rejected.
 - [ ] A rejected preorder does not leave partial preorder or `po_line` records.
 
-### Final Demo Video
 
-**Final Demo Video:** [Link will be added before submission]
